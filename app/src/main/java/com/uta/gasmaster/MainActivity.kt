@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        val call = RetrofitClient.service.searchPOI("gas_station", "4OcLWbam2Vh83vTf9bTYdy3x8aZhfhVo", 37.337, -121.89, 10, 7315)
+        val call = RetrofitClient.service.searchPOI("gas-station", "4OcLWbam2Vh83vTf9bTYdy3x8aZhfhVo", 37.337, -121.89, 10, 7315)
         call.enqueue(object : Callback<PoiSearchResponse> {
             override fun onResponse(call: Call<PoiSearchResponse>, response: Response<PoiSearchResponse>) {
                 if (response.isSuccessful) {
