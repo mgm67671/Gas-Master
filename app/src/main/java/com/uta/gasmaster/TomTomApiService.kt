@@ -12,8 +12,9 @@ interface TomTomApiService {
         @Query("key") apiKey: String,
         @Query("lat") latitude: Double,
         @Query("lon") longitude: Double,
-        @Query("limit") limit: Int,
-        @Query("categorySet") categorySet: Int
+        @Query("radius") radius: Int,
+        @Query("categorySet") categorySet: Int,
+        @Query("relatedPois") relatedPois: String
     ): Call<PoiSearchResponse>
 }
 //Sets up how the API is called and the information sent to it
