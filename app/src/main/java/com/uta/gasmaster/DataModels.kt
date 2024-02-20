@@ -5,3 +5,5 @@ data class PoiResult(val id: String, val poi: Poi, val address: Address, val pos
 data class Poi(val name: String)
 data class Address(val freeformAddress: String)
 data class Position(val lat: Double, val lon: Double)
+
+//All the different sets of data that are currently needed to use the API

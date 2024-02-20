@@ -16,3 +16,4 @@ interface TomTomApiService {
         @Query("categorySet") categorySet: Int
     ): Call<PoiSearchResponse>
 }
+//Sets up how the API is called and the information sent to it
