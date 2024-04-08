@@ -1,7 +1,20 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("com.android.application") version "8.1.1"
+    id("org.jetbrains.kotlin.android") version "1.8.10"
+    id("io.gitlab.arturbosch.detekt") version "1.23.3"
 }
+
+detekt {
+    toolVersion = "1.23.3"
+    source = files("C:/Users/might/AndroidStudioProjects/GasMaster/app/src/main/java/com/uta/gasmaster")
+    buildUponDefaultConfig = true
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        txt.required.set(true)
+    }
+}
+
 
 android {
     namespace = "com.uta.gasmaster"
@@ -71,4 +84,8 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation ("com.google.code.gson:gson:2.8.6")
 }
+

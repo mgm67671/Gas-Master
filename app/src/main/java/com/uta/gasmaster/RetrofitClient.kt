@@ -11,4 +11,4 @@ object RetrofitClient {
 
     val service: TomTomApiService = retrofit.create(TomTomApiService::class.java)
 }
-//Sets up the API call(s) and how they retrieve data
+// Sets up the API call(s) and how they retrieve data
