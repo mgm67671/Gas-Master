@@ -7,7 +7,12 @@ Gas Master is a Simplistic Android Application that will get gasoline prices fro
 1. Make sure to [download android studio](https://developer.android.com/studio)
 2. Clone the repository
 3. Open project on android studio and click "Gas-Master" as the folder
-4. Right click "MainActivity.kt" and select "Run 'MainActivity'" to run the app
+4. In VSCode run the following:
+      pip install py-gasbuddy
+      pip install Flask
+      gasbuddy-env\Scripts\activate
+      and then in the same directory run the Local_Server_Gas.py file. 
+5. Right click "MainActivity.kt" and select "Run 'MainActivity'" to run the app
 
 Can't find android sdk error? [click here](https://www.geeksforgeeks.org/how-to-fix-sdk-location-not-found-in-android-studio/)
 
