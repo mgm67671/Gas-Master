@@ -1,204 +1,200 @@
 package com.uta.gasmaster
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.util.Locale
 
+data class AddressLine
+(
+    val line1: String
+)
 data class PriceDetail(
-    val credit: String,
-    val price: Double,
-    val last_updated: String
+    val credit: String?,
+    val price: Double?,
+    val lastUpdated: String?
 )
 
-data class Prices(
-    val station_id: String,
-    val unit_of_measure: String,
+data class Prices
+(
+    val stationID: String,
+    val units: String,
     val currency: String,
     val latitude: Double,
     val longitude: Double,
-    val regular_gas: PriceDetail,
-    val premium_gas: PriceDetail,
-    val diesel: PriceDetail
+    val regular_gas: PriceDetail?,
+    val midgrade_gas: PriceDetail?,
+    val premium_gas: PriceDetail?,
+    val diesel: PriceDetail?
 )
 
-data class GasStationResponse(
+data class GasStationResponse
+(
     val stationName: String,
     val stationId: String,
-    val address: String,
+    val address: AddressLine,
     val prices: Prices
 )
 
+data class GasStationListResponse
+(
+    val stations: List<GasStationResponse>
+)
 
-class MainActivity : AppCompatActivity() {
-    /*companion object {
-        private const val DEFAULT_LATITUDE = 37.337
-        private const val DEFAULT_LONGITUDE = -121.89
-        private const val DEFAULT_RADIUS = 3000
-        private const val LOCATION_PERMISSION_REQUEST_CODE = 0
-        private const val LOCATION_UPDATE_INTERVAL = 10000L
-        private const val LOCATION_FASTEST_INTERVAL = 1000L
-        private const val KEY = "4OcLWbam2Vh83vTf9bTYdy3x8aZhfhVo"
-    }
 
+class MainActivity : AppCompatActivity()
+{
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: GasStationsAdapter
-    private var latitude: Double = 37.337
-    private var longitude: Double = DEFAULT_LONGITUDE
-    private var radius: Int = DEFAULT_RADIUS*/
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        fetchGasPrices()
-    }
-
-
-    /*override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?)
+    {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        recyclerView = findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        val gasType = intent.getStringExtra("GAS_TYPE") ?: "Regular"
+        Log.d("MainActivity", "Selected gas type: $gasType")
+        fetchGasPrices(gasType)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        getLastKnownLocation()
-    }*/
 
-    /*private fun getLastKnownLocation() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 1000)
+        }
+        else
+        {
+            getLastKnownLocation()
+        }
+    }
+
+    private fun getLastKnownLocation()
+    {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
             return
         }
-
-        val locationRequest = LocationRequest.Builder(LOCATION_UPDATE_INTERVAL)
-            .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-            .setIntervalMillis(LOCATION_FASTEST_INTERVAL)
-            .build()
-
-        val locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                super.onLocationResult(locationResult)
-                for (location in locationResult.locations) {
-                    if (location != null) {
-                        latitude = location.latitude
-                        longitude = location.longitude
-
-                        //Call the Retrofit service here with the updated location
-                        val call = RetrofitClient.service.searchPOI(
-                            "gas-station",
-                            KEY,
-                            latitude,
-                            longitude,
-                            radius
-                        )
-                        call.enqueue(
-                            object : Callback<PoiSearchResponse> {
-                                override fun onResponse(
-                                    call: Call<PoiSearchResponse>,
-                                    response: Response<PoiSearchResponse>
-                                ) {
-                                    if (response.isSuccessful) {
-                                        val poiResults = response.body()?.results ?: emptyList()
-                                        adapter = GasStationsAdapter(poiResults)
-                                        recyclerView.adapter = adapter
-                                    } else {
-                                        TODO("Handle error case")
-                                    }
-                                }
-
-                                override fun onFailure(
-                                    call: Call<PoiSearchResponse>,
-                                    t: Throwable
-                                ) {
-                                    TODO("Not yet implemented")
-                                }
-                            }
-                        )
-
-                        fusedLocationClient.removeLocationUpdates(this)
-                        break
+        fusedLocationClient.lastLocation.addOnSuccessListener {
+                location -> if (location != null)
+                {
+                    val geocoder = Geocoder(this, Locale.getDefault())
+                    val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                    val zipcode = addresses?.get(0)?.postalCode
+                    if (zipcode != null)
+                    {
+                        fetchGasPrices(zipCode = zipcode)
                     }
                 }
-            }
+        }.addOnFailureListener{ Log.e("MainActivity", "Error getting location", it) }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray)
+    {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1000 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+        {
+            getLastKnownLocation()
         }
+    }
 
-
-
-
-        fusedLocationClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            Looper.getMainLooper()
-        )
-    }*/
-    fun fetchGasPrices(zipCode: String = "76063") {
+    private fun fetchGasPrices(zipCode: String, sortBy: String = "Regular")
+    {
         Thread {
-            try {
+            try
+            {
                 val client = OkHttpClient()
                 val url = "http://10.0.2.2:5000/getGasPrices?zipcode=$zipCode"
-                val request = Request.Builder()
-                    .url(url)
-                    .build()
+                val request = Request.Builder().url(url).build()
 
-                client.newCall(request).execute().use { response ->
-                    val responseData = response.body?.string()
+                client.newCall(request).execute().use {
+                    response -> val responseData = response.body?.string()
                     Log.d("GasPrices", "Response: $responseData")
 
-                    if (responseData != null) {
+                    if (responseData != null)
+                    {
                         val gson = Gson()
-                        val gasStationResponse = gson.fromJson(responseData, GasStationResponse::class.java)
+                        try
+                        {
+                            val gasStationListResponse = gson.fromJson(responseData, GasStationListResponse::class.java)
 
-                        runOnUiThread {
-                            val textView = findViewById<TextView>(R.id.textView)
-                            val pricesText = "Regular: $${gasStationResponse.prices.regular_gas.price}, " +
-                                    "Premium: $${gasStationResponse.prices.premium_gas.price}, " +
-                                    "Diesel: $${gasStationResponse.prices.diesel.price}"
-                            textView.text = pricesText
+                            val sortedStations = gasStationListResponse.stations.filter { it.hasValidPrice(sortBy)}.sortedBy {
+                                station -> when (sortBy)
+                                {
+                                    "Regular" -> station.prices.regular_gas?.price ?: Double.MAX_VALUE
+                                    "Mid-grade" -> station.prices.midgrade_gas?.price ?: Double.MAX_VALUE
+                                    "Premium" -> station.prices.premium_gas?.price ?: Double.MAX_VALUE
+                                    "Diesel" -> station.prices.diesel?.price ?: Double.MAX_VALUE
+                                    else -> Double.MAX_VALUE
+                                }
+                            }
+
+                            runOnUiThread {
+                                val textView = findViewById<TextView>(R.id.textView)
+                                var displayText = ""
+                                for (station in sortedStations)
+                                {
+                                    displayText +=
+                                        "Station: ${station.stationName}\n" +
+                                        "Address: ${station.address.line1}\n" +
+                                        when (sortBy)
+                                        {
+                                            "Regular" -> "Regular: ${formatPrice(station.prices.regular_gas)}\n"
+                                            "Mid-grade" -> "Mid-grade: ${formatPrice(station.prices.midgrade_gas)}\n"
+                                            "Premium" -> "Premium: ${formatPrice(station.prices.premium_gas)}\n"
+                                            "Diesel" -> "Diesel: ${formatPrice(station.prices.diesel)}\n\n"
+                                            else -> ""
+                                        } + "\n"
+                                }
+                                textView.text = displayText
+                            }
+                        }
+                        catch (e: JsonSyntaxException)
+                        {
+                            Log.e("GasPrices", "JSON Parsing Error: ${e.message}")
                         }
                     }
                 }
-            } catch (e: Exception) {
+            }
+            catch (e: Exception)
+            {
                 e.printStackTrace()
                 Log.e("GasPrices", "Error: ${e.message}")
             }
         }.start()
     }
-
-
-
-
-    /*override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getLastKnownLocation()
-            } else {
-                TODO("Handle error case")
-            }
-        }
-    }*/
 }
+
+private fun formatPrice(priceDetail: PriceDetail?): String {
+    return if (priceDetail?.price != null && priceDetail.price != 0.0)
+    {
+        "$${priceDetail.price}"
+    }
+    else
+    {
+        "N/A"
+    }
+}
+
+private fun GasStationResponse.hasValidPrice(gasType: String): Boolean
+{
+    return when (gasType)
+    {
+        "Regular" -> this.prices.regular_gas?.price?.let { it > 0 } ?: false
+        "Mid-grade" -> this.prices.midgrade_gas?.price?.let { it > 0 } ?: false
+        "Premium" -> this.prices.premium_gas?.price?.let { it > 0 } ?: false
+        "Diesel" -> this.prices.diesel?.price?.let { it > 0 } ?: false
+        else -> false
+    }
+}
+
