@@ -16,11 +16,12 @@ class HomeScreen : AppCompatActivity()
 
         val gasTypes = arrayOf("Regular", "Mid-grade", "Premium", "Diesel")
         val spinner = findViewById<Spinner>(R.id.gasTypeSpinner)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, gasTypes)
+
+        val adapter = ArrayAdapter(this, R.layout.spinner_item, gasTypes)
         spinner.adapter = adapter
 
         val submitButton = findViewById<Button>(R.id.submitButton)
-        submitButton.setOnClickListener{
+        submitButton.setOnClickListener {
             val selectedGasType = spinner.selectedItem.toString()
             val intent = Intent(this, MainActivity::class.java)
             intent.putExtra("GAS_TYPE", selectedGasType)

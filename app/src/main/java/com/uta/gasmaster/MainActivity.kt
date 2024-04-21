@@ -1,19 +1,24 @@
 package com.uta.gasmaster
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.util.Locale
 
 data class AddressLine
@@ -52,63 +57,87 @@ data class GasStationListResponse
     val stations: List<GasStationResponse>
 )
 
+interface ZipcodeCallback {
+    fun onZipcodeReceived(zipcode: String)
+    fun onError(error: String)
+}
 
-class MainActivity : AppCompatActivity()
+class MainActivity : AppCompatActivity(), ZipcodeCallback
 {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: GasStationAdapter
+
     override fun onCreate(savedInstanceState: Bundle?)
     {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setupRecyclerView()
 
         val gasType = intent.getStringExtra("GAS_TYPE") ?: "Regular"
         Log.d("MainActivity", "Selected gas type: $gasType")
-        fetchGasPrices(gasType)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 1000)
         }
         else
         {
-            getLastKnownLocation()
+            getLastKnownLocation(this)
         }
     }
-
-    private fun getLastKnownLocation()
+    private fun getLastKnownLocation(callback: ZipcodeCallback)
     {
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
+            callback.onError("Location permission not granted")
             return
         }
-        fusedLocationClient.lastLocation.addOnSuccessListener {
-                location -> if (location != null)
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null)
+            {
+                try
                 {
                     val geocoder = Geocoder(this, Locale.getDefault())
                     val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                     val zipcode = addresses?.get(0)?.postalCode
                     if (zipcode != null)
                     {
-                        fetchGasPrices(zipCode = zipcode)
+                        callback.onZipcodeReceived(zipcode)
+                    }
+                    else
+                    {
+                        callback.onError("Zipcode not found")
                     }
                 }
-        }.addOnFailureListener{ Log.e("MainActivity", "Error getting location", it) }
+                catch (e: IOException)
+                {
+                    callback.onError("Error retrieving zipcode: ${e.localizedMessage}")
+                }
+            }
+            else
+            {
+                callback.onError("Location is null")
+            }
+        }.addOnFailureListener { exception -> callback.onError("Error getting location: ${exception.message}") }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray)
+    override fun onZipcodeReceived(zipcode: String)
     {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1000 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-        {
-            getLastKnownLocation()
-        }
+        val gasType = intent.getStringExtra("GAS_TYPE") ?: "Regular"
+        fetchGasPrices(zipcode, gasType)
     }
 
-    private fun fetchGasPrices(zipCode: String, sortBy: String = "Regular")
+    override fun onError(error: String)
+    {
+        Log.e("MainActivity", error)
+        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+    }
+
+    private fun fetchGasPrices(zipCode: String = "76063", sortBy: String = "Regular")
     {
         Thread {
             try
@@ -128,36 +157,18 @@ class MainActivity : AppCompatActivity()
                         {
                             val gasStationListResponse = gson.fromJson(responseData, GasStationListResponse::class.java)
 
-                            val sortedStations = gasStationListResponse.stations.filter { it.hasValidPrice(sortBy)}.sortedBy {
-                                station -> when (sortBy)
+                            val validStations = gasStationListResponse.stations.filter { it.hasValidPrice(sortBy) }
+                            val sortedStations = validStations.sortedBy {
+                                when (sortBy)
                                 {
-                                    "Regular" -> station.prices.regular_gas?.price ?: Double.MAX_VALUE
-                                    "Mid-grade" -> station.prices.midgrade_gas?.price ?: Double.MAX_VALUE
-                                    "Premium" -> station.prices.premium_gas?.price ?: Double.MAX_VALUE
-                                    "Diesel" -> station.prices.diesel?.price ?: Double.MAX_VALUE
+                                    "Regular" -> it.prices.regular_gas?.price ?: Double.MAX_VALUE
+                                    "Mid-grade" -> it.prices.midgrade_gas?.price ?: Double.MAX_VALUE
+                                    "Premium" -> it.prices.premium_gas?.price ?: Double.MAX_VALUE
+                                    "Diesel" -> it.prices.diesel?.price ?: Double.MAX_VALUE
                                     else -> Double.MAX_VALUE
                                 }
                             }
-
-                            runOnUiThread {
-                                val textView = findViewById<TextView>(R.id.textView)
-                                var displayText = ""
-                                for (station in sortedStations)
-                                {
-                                    displayText +=
-                                        "Station: ${station.stationName}\n" +
-                                        "Address: ${station.address.line1}\n" +
-                                        when (sortBy)
-                                        {
-                                            "Regular" -> "Regular: ${formatPrice(station.prices.regular_gas)}\n"
-                                            "Mid-grade" -> "Mid-grade: ${formatPrice(station.prices.midgrade_gas)}\n"
-                                            "Premium" -> "Premium: ${formatPrice(station.prices.premium_gas)}\n"
-                                            "Diesel" -> "Diesel: ${formatPrice(station.prices.diesel)}\n\n"
-                                            else -> ""
-                                        } + "\n"
-                                }
-                                textView.text = displayText
-                            }
+                            runOnUiThread { displayStations(sortedStations) }
                         }
                         catch (e: JsonSyntaxException)
                         {
@@ -173,16 +184,69 @@ class MainActivity : AppCompatActivity()
             }
         }.start()
     }
-}
-
-private fun formatPrice(priceDetail: PriceDetail?): String {
-    return if (priceDetail?.price != null && priceDetail.price != 0.0)
+    private fun setupRecyclerView()
     {
-        "$${priceDetail.price}"
+        recyclerView = findViewById(R.id.recyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this)
     }
-    else
+
+    private fun displayStations(stations: List<GasStationResponse>)
     {
-        "N/A"
+        adapter = GasStationAdapter(stations)
+        {
+            station -> openMap(station.address.line1)
+        }
+        recyclerView.adapter = adapter
+    }
+
+    private fun openMap(address: String)
+    {
+        val encodedAddress = Uri.encode(address)
+        val uri = Uri.parse("geo:0,0?q=$encodedAddress")
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+
+        if (isGoogleMapsInstalled())
+        {
+            intent.setPackage("com.google.android.apps.maps")
+        }
+
+        if (intent.resolveActivity(packageManager) != null)
+        {
+            startActivity(intent)
+        }
+        else
+        {
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedAddress"))
+            if (webIntent.resolveActivity(packageManager) != null)
+            {
+                startActivity(webIntent)
+            }
+            else
+            {
+                showToast("No application available to view maps.")
+            }
+        }
+    }
+
+
+    private fun isGoogleMapsInstalled(): Boolean
+    {
+        return try
+        {
+            packageManager.getPackageInfo("com.google.android.apps.maps", PackageManager.GET_ACTIVITIES)
+            true
+        }
+        catch (e: PackageManager.NameNotFoundException)
+        {
+            false
+        }
+    }
+
+
+
+    private fun showToast(message: String)
+    {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
 
