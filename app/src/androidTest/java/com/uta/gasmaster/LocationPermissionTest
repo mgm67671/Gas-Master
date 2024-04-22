@@ -1,0 +1,48 @@
+package com.uta.gasmaster
+
+import android.content.Context
+import android.location.LocationManager
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.mockito.Mock
+import org.mockito.Mockito.`when`
+import org.mockito.MockitoAnnotations
+
+class LocationPermissionTest 
+{
+
+    @Mock                                                   // Clone android application
+    lateinit var mockContext: Context
+
+    @Mock
+    lateinit var mockLocationManager: LocationManager       // Clone Location Manager
+
+    @Before
+    fun setup() 
+    {                                           // Setting up a cloned environment using mockito
+        MockitoAnnotations.openMocks(this)
+        `when`(mockContext.getSystemService(Context.LOCATION_SERVICE)).thenReturn(mockLocationManager)
+    }
+
+    @Test
+    fun testLocationPermissionGranted() 
+    {                   // Check if when access is granted to our GPS location, app has access to location
+        `when`(mockLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)).thenReturn(true)
+        assertTrue(checkLocationPermission(mockContext))
+    }
+
+    @Test
+    fun testLocationPermissionDenied() 
+    {                    // Check if when access is denied to our GPS location, app has no access to location
+        `when`(mockLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)).thenReturn(false)
+        assertFalse(checkLocationPermission(mockContext))
+    }
+
+    private fun checkLocationPermission(context: Context): Boolean 
+    {        // Checks if GPS is enabled (True) or not (False)
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    }
+}
