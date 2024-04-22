@@ -21,7 +21,7 @@ async def get_gas_prices(zip_code):
     if 'data' in results and results['data'] and 'locationBySearchTerm' in results['data']:
         stations = results['data']['locationBySearchTerm']['stations']['results']
         station_list = []
-        for station in stations[:15]:
+        for station in stations[:15]: # Update this number to change the number of stations retrieved
             prices = await get_gas_station_prices(station['id'])
             station_info = {
                 'stationName': station.get('name', 'Unknown Station'),
@@ -40,7 +40,7 @@ def get_gas_prices_route():
     asyncio.set_event_loop(loop)
     result = loop.run_until_complete(get_gas_prices(zip_code))
     print(result)
-    return jsonify(result)
+    return jsonify(result) # Returns a Json with the gas stations and information
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
