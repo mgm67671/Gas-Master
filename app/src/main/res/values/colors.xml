@@ -10,4 +10,5 @@
     <color name="textColor">#f3f3f3</color>
     <color name="backgroundColor">#595959</color>
     <color name="colorPrimary">#26AABF</color>
+    <!-- The colors for the app's theme -->
 </resources>

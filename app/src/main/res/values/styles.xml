@@ -1,6 +1,6 @@
 <resources>
 
-    <!-- Base application theme. -->
+    <!-- Base application theme. This is where we set the default colors for the theme and the button -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <item name="android:textColor">@color/textColor</item>
         <item name="android:windowBackground">@color/backgroundColor</item>

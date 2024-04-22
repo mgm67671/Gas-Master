@@ -7,6 +7,11 @@ import android.widget.Button
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
 
+
+/**
+ * This is where the application starts
+ * it creates the starting home screen with the spinner and button
+ */
 class HomeScreen : AppCompatActivity()
 {
     override fun onCreate(savedInstanceState: Bundle?)

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Fronted for the home screen, sets up the button and spinner using the custom settings for color and spinners -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/backgroundColor"
@@ -21,8 +23,9 @@
         android:layout_marginTop="20dp"
         android:background="@drawable/round_button"
         android:gravity="center"
-        android:text="Submit"
+        android:text="@string/submit"
         android:textColor="@color/textColor"
-        android:textSize="18sp" />
+        android:textSize="18sp"
+        tools:ignore="TextContrastCheck" />
 </LinearLayout>
 

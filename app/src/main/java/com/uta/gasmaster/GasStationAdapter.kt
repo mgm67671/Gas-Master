@@ -22,13 +22,13 @@ class GasStationAdapter
         val midGradeGasPrice: TextView = view.findViewById(R.id.midGradeGasPriceTextView)
         val premiumGasPrice: TextView = view.findViewById(R.id.premiumGasPriceTextView)
         val dieselPrice: TextView = view.findViewById(R.id.dieselPriceTextView)
-    }
+    } // Formats the view of the stations, address, and prices
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder
     {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.recycler_item, parent, false)
         return ViewHolder(view)
-    }
+    } // Creates the view
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int)
     {
@@ -56,7 +56,7 @@ class GasStationAdapter
             Log.d("GasStationAdapter", "Station clicked: ${station.stationName}")
             onStationClick(station)
         }
-    }
+    } // Displays the formatted text
     override fun getItemCount() = stations.size
 }
 
@@ -70,4 +70,4 @@ private fun formatPrice(priceDetail: PriceDetail?): String
     {
         "N/A"
     }
-}
+} // Formats the gas prices

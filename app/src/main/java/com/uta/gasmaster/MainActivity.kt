@@ -24,12 +24,13 @@ import java.util.Locale
 data class AddressLine
 (
     val line1: String
-)
-data class PriceDetail(
+) // Where the actual address for the station is stored
+data class PriceDetail
+(
     val credit: String?,
     val price: Double?,
     val lastUpdated: String?
-)
+) // Where further details of each type of gas is stored
 
 data class Prices
 (
@@ -42,7 +43,7 @@ data class Prices
     val midgrade_gas: PriceDetail?,
     val premium_gas: PriceDetail?,
     val diesel: PriceDetail?
-)
+) // Where the details of all the gases for a station are
 
 data class GasStationResponse
 (
@@ -50,17 +51,18 @@ data class GasStationResponse
     val stationId: String,
     val address: AddressLine,
     val prices: Prices
-)
+) // Where the basic data for each station goes
 
 data class GasStationListResponse
 (
     val stations: List<GasStationResponse>
-)
+) // An "array" of all the gas stations retrieved
 
-interface ZipcodeCallback {
+interface ZipcodeCallback
+{
     fun onZipcodeReceived(zipcode: String)
     fun onError(error: String)
-}
+} // Just tests if the zipcode is recieved correctly, so error checking
 
 class MainActivity : AppCompatActivity(), ZipcodeCallback
 {
@@ -87,14 +89,14 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
         {
             getLastKnownLocation(this)
         }
-    }
+    } // Sets up the view and location clients and recieves the chosen gas type
     private fun getLastKnownLocation(callback: ZipcodeCallback)
     {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
             callback.onError("Location permission not granted")
             return
-        }
+        } // Checks if location services are enabled
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             if (location != null)
@@ -123,19 +125,19 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
                 callback.onError("Location is null")
             }
         }.addOnFailureListener { exception -> callback.onError("Error getting location: ${exception.message}") }
-    }
+    } // Finds the user's location and finds the zipcode based on that
 
     override fun onZipcodeReceived(zipcode: String)
     {
         val gasType = intent.getStringExtra("GAS_TYPE") ?: "Regular"
         fetchGasPrices(zipcode, gasType)
-    }
+    } // Once the zipcode is confirmed received, get the gas prices
 
     override fun onError(error: String)
     {
         Log.e("MainActivity", error)
         Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-    }
+    } // Displays message to user on error
 
     private fun fetchGasPrices(zipCode: String = "76063", sortBy: String = "Regular")
     {
@@ -183,12 +185,12 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
                 Log.e("GasPrices", "Error: ${e.message}")
             }
         }.start()
-    }
+    } // Calls the server and gets the stations and prices of stations in your zip code
     private fun setupRecyclerView()
     {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-    }
+    } // Sets up the view displaying the stations
 
     private fun displayStations(stations: List<GasStationResponse>)
     {
@@ -197,7 +199,7 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
             station -> openMap(station.address.line1)
         }
         recyclerView.adapter = adapter
-    }
+    } // Displays the gas stations, its prices, and its address
 
     private fun openMap(address: String)
     {
@@ -226,7 +228,7 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
                 showToast("No application available to view maps.")
             }
         }
-    }
+    } //  When a station is clicked on it opens maps to the station or displays a message to the user on failure
 
 
     private fun isGoogleMapsInstalled(): Boolean
@@ -240,14 +242,14 @@ class MainActivity : AppCompatActivity(), ZipcodeCallback
         {
             false
         }
-    }
+    } // Checks if the user has Google Maps or not
 
 
 
     private fun showToast(message: String)
     {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
+    } // Shows user a messae on an error
 }
 
 private fun GasStationResponse.hasValidPrice(gasType: String): Boolean
@@ -260,5 +262,5 @@ private fun GasStationResponse.hasValidPrice(gasType: String): Boolean
         "Diesel" -> this.prices.diesel?.price?.let { it > 0 } ?: false
         else -> false
     }
-}
+} // Formats the prices of the gas
 
