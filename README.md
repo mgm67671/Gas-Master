@@ -15,8 +15,9 @@ Gas Master is a Simplistic Android Application that will get gasoline prices fro
 Can't find android sdk error? [click here](https://www.geeksforgeeks.org/how-to-fix-sdk-location-not-found-in-android-studio/)
 
 # Changelog
- Iteration 1: showing gas stations,
- Iteration 2: App is now correctly showing gas stations near the user,
- Iteration 3: App is successfully retrieving all 4 types of gas prices near user
+- Iteration 1: showing gas stations,
+- Iteration 2: App is now correctly showing gas stations near the user,
+- Iteration 3: App is successfully retrieving all 4 types of gas prices near user
+- Iteration 4: App is succesfully display top 5 gas stations near user, implemented homescreen GUI, and when user taps on desired gas station, it opens google maps with the address of the gas station
 
 Most up to date demonstration: https://youtu.be/Yp4ITwJaGEM
